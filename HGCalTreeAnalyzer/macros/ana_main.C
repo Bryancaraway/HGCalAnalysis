@@ -35,6 +35,7 @@
 // Change "numFiles" to desired amount of files to run over (max: 20)
 // Change "geoType" to the type of geometry 
 // outFile names are at the bottom
+// change bool statement if you want to run debug file
  
 std::vector<std::string> GetInputFiles(std::string geoConfig)
 {
@@ -70,11 +71,17 @@ void WriteToOutput(int n_f,  TH2F* h[n_f], TString outputFile, TString fileOptio
 
 void ana_main()
 {
-  
-  std::string geoType = "D30" ; // "D30" for D30 geo, "" for D28
+  bool test_file = true; // if testing setup with single file (will have to edit below for file choice)
+
+  std::string geoType = "" ; // "D30" for D30 geo, "" for D28
   std::vector<std::string> inputFiles;
-  if (geoType == ""){ inputFiles = GetInputFiles(geoType); }
-  else {inputFiles = GetInputFiles(geoType+"_");}
+  if (!test_file)
+    {
+      if (geoType == ""){ inputFiles = GetInputFiles(geoType); }
+      else {inputFiles = GetInputFiles(geoType+"_");}
+    }
+  else inputFiles.push_back("ttbar_10_4_D30_pt25.root"); // edit here if test file!!!!!!!!!!!!!!===================
+
   TChain *ch = new TChain("hgcalTupleTree/tree");
   
   for (unsigned int iFile=0; iFile<inputFiles.size(); ++iFile) {
@@ -120,7 +127,7 @@ void ana_main()
   //TTreeReaderArray<float> HGCRecHitPosy = {fReader, "HGCRecHitPosy"};
   //TTreeReaderArray<float> HGCRecHitPosz = {fReader, "HGCRecHitPosz"};
   //TTreeReaderArray<float> HGCSimHitsEnergy = {fReader, "HGCSimHitsEnergy"};
-  //TTreeReaderArray<float> HGCSimHitsEta = {fReader, "HGCSimHitsEta"};
+  TTreeReaderArray<float> HGCSimHitsEta = {fReader, "HGCSimHitsEta"};
   //TTreeReaderArray<float> HGCSimHitsPhi = {fReader, "HGCSimHitsPhi"};
   //TTreeReaderArray<float> HGCSimHitsPosx = {fReader, "HGCSimHitsPosx"};
   //TTreeReaderArray<float> HGCSimHitsPosy = {fReader, "HGCSimHitsPosy"};
@@ -157,15 +164,15 @@ void ana_main()
   TTreeReaderArray<int> HGCDigiWaferV = {fReader, "HGCDigiWaferV"};
   //TTreeReaderArray<int> HGCRecHitIndex = {fReader, "HGCRecHitIndex"};
   //TTreeReaderArray<int> HGCRecHitLayer = {fReader, "HGCRecHitLayer"};
-  //TTreeReaderArray<int> HGCSimHitsCellU = {fReader, "HGCSimHitsCellU"};
-  //TTreeReaderArray<int> HGCSimHitsCellV = {fReader, "HGCSimHitsCellV"};
+  TTreeReaderArray<int> HGCSimHitsCellU = {fReader, "HGCSimHitsCellU"};
+  TTreeReaderArray<int> HGCSimHitsCellV = {fReader, "HGCSimHitsCellV"};
   //TTreeReaderArray<int> HGCSimHitsIEta = {fReader, "HGCSimHitsIEta"};
   //TTreeReaderArray<int> HGCSimHitsIPhi = {fReader, "HGCSimHitsIPhi"};
-  //TTreeReaderArray<int> HGCSimHitsIndex = {fReader, "HGCSimHitsIndex"};
-  //TTreeReaderArray<int> HGCSimHitsLayer = {fReader, "HGCSimHitsLayer"};
+  TTreeReaderArray<int> HGCSimHitsIndex = {fReader, "HGCSimHitsIndex"};
+  TTreeReaderArray<int> HGCSimHitsLayer = {fReader, "HGCSimHitsLayer"};
   //TTreeReaderArray<int> HGCSimHitsSubdet = {fReader, "HGCSimHitsSubdet"};
-  //TTreeReaderArray<int> HGCSimHitsWaferU = {fReader, "HGCSimHitsWaferU"};
-  //TTreeReaderArray<int> HGCSimHitsWaferV = {fReader, "HGCSimHitsWaferV"};
+  TTreeReaderArray<int> HGCSimHitsWaferU = {fReader, "HGCSimHitsWaferU"};
+  TTreeReaderArray<int> HGCSimHitsWaferV = {fReader, "HGCSimHitsWaferV"};
   //TTreeReaderArray<int> HGCUncalibratedRecHitIndex = {fReader, "HGCUncalibratedRecHitIndex"};
   //TTreeReaderArray<int> HGCUncalibratedRecHitLayer = {fReader, "HGCUncalibratedRecHitLayer"};
   //TTreeReaderArray<int> SimTracksCharge = {fReader, "SimTracksCharge"};
@@ -226,10 +233,26 @@ void ana_main()
       name <<"h_digi_ceh_cellxy_"<<i;
       h_digi_ceh_cellxy[i] = new TH2F(name.str().c_str(),name.str().c_str(),1000,-750,750,750,-750,750);
     }
+
+  TH2F *h_sim_cee_cellxy[28];
+  for(int i=1; i<=28; i++) 
+    {
+      std::ostringstream name;
+      name <<"h_sim_cee_cellxy_"<<i;
+      h_sim_cee_cellxy[i] = new TH2F(name.str().c_str(),name.str().c_str(),1000,-750,750,750,-750,750);
+    }
+
+  TH2F *h_sim_ceh_cellxy[24];
+  for(int i=1; i<=24; i++) 
+    {
+      std::ostringstream name;
+      name <<"h_sim_ceh_cellxy_"<<i;
+      h_sim_ceh_cellxy[i] = new TH2F(name.str().c_str(),name.str().c_str(),1000,-750,750,750,-750,750);
+    }
   
   // to figure out fine from coarse wafers 
   ofstream csv_file;
-  bool openFile = true; // toggle off if you dont want to slow down code 
+  bool openFile = false; // toggle off if you dont want to slow down code 
 
   if (openFile)
     {
@@ -258,15 +281,15 @@ void ana_main()
       // CEE -- 1-28 layers, CEH Si -- 1-24 layers, CEH Scint -- 9-24 layers
 
       
-
+      // ================DIGIS=========================
       for (int irc = 0, nrc = HGCDigiEta.GetSize(); irc <nrc; ++irc)
 	{
 	  int l_hit = HGCDigiLayer[irc];
 	  int u_wafer = HGCDigiWaferU[irc];
 	  int v_wafer = HGCDigiWaferV[irc];
 	  int u_cell = HGCDigiCellU[irc];
-	  int v_cell = HGCDigiCellV[irc];
-	  // testing full cell mapping
+	  int v_cell = HGCDigiCellV[irc];	 
+
 	  int num_cell = 12; // 8 for coarse, 12 for fine ================ NEED TO FIGURE OUT WHICH CELLS ARE COARSE AND FINE
 	  double x_wafer= -2*u_wafer+v_wafer;
 	  double y_wafer= 2*v_wafer;
@@ -284,7 +307,7 @@ void ana_main()
 	      h_digi_cee_cellxy[l_hit]->Fill(x_test,y_test);
 	      if (openFile)
 		{
-		  if (u_cell > 15 || (abs(u_wafer) <= 2 && abs(v_wafer) <= 2))
+		  if (u_cell > 15 || ((abs(u_wafer) <= 2 && abs(v_wafer) < 2) || (abs(u_wafer) < 2 && abs(v_wafer) <= 2)))
 		    {
 		      csv_line << l_hit-1 <<","<<u_wafer<<","<<v_wafer<<","<<u_cell<<","<<v_cell<<"\n";
 		      csv_file << csv_line.str().c_str();
@@ -301,12 +324,65 @@ void ana_main()
 
 	      if (openFile)
 		{
-		  if ((u_cell > 15 || (abs(u_wafer) <= 2 && abs(v_wafer) <= 2)) && l_hit <= 6)
+		  if ((u_cell > 15 || ((abs(u_wafer) <= 2 && abs(v_wafer) < 2) || (abs(u_wafer) < 2 && abs(v_wafer) <= 2))) && l_hit <= 5)
 		    {
 		      csv_line << l_hit+27 <<","<<u_wafer<<","<<v_wafer<<","<<u_cell<<","<<v_cell<<"\n";
 		      csv_file << csv_line.str().c_str();
 		    }
 		}
+	      
+	    }
+	  
+	}
+      // =====================SIMHITS STUDY==============
+      for (int irc = 0, nrc = HGCSimHitsEta.GetSize(); irc <nrc; ++irc)
+	{
+	  int l_hit = HGCSimHitsLayer[irc];
+	  int u_wafer = HGCSimHitsWaferU[irc];
+	  int v_wafer = HGCSimHitsWaferV[irc];
+	  int u_cell = HGCSimHitsCellU[irc];
+	  int v_cell = HGCSimHitsCellV[irc];	 
+
+	  int num_cell = 12; // 8 for coarse, 12 for fine ================ NEED TO FIGURE OUT WHICH CELLS ARE COARSE AND FINE
+	  double x_wafer= -2*u_wafer+v_wafer;
+	  double y_wafer= 2*v_wafer;
+	  double x_cell= 1.5*(v_cell-num_cell)+1;
+	  double y_cell= u_cell-0.5*(num_cell+v_cell);
+	  double x_test = x_cell+1.65*num_cell*x_wafer;
+	  double y_test = y_cell+0.9*num_cell*y_wafer;
+	  
+	  //std::ostringstream csv_line;
+
+	  if (HGCSimHitsIndex[irc] == 0)
+	    {
+	      //h_sim_cee_waferuv[l_hit]->Fill(u_wafer,v_wafer);
+	      //h_sim_cee_celluv[l_hit]->Fill(u_cell,v_cell);
+	      h_sim_cee_cellxy[l_hit]->Fill(x_test,y_test);
+	//if (openFile)
+	//	{
+	//	  if (u_cell > 15 || ((abs(u_wafer) <= 2 && abs(v_wafer) < 2) || (abs(u_wafer) < 2 && abs(v_wafer) <= 2)))
+	//	    {
+	//	      csv_line << l_hit-1 <<","<<u_wafer<<","<<v_wafer<<","<<u_cell<<","<<v_cell<<"\n";
+	//	      csv_file << csv_line.str().c_str();
+	//	    }
+	//	}
+	    }
+	  if (HGCSimHitsIndex[irc] == 1)
+	    {
+	      //h_sim_ceh_waferuv[l_hit]->Fill(u_wafer,v_wafer);
+	      //h_sim_ceh_celluv[l_hit]->Fill(u_cell,v_cell);
+	      //if ( l_hit == 6 && ((u_cell == 0 && v_cell == 11) || (u_cell == 12 && v_cell == 0) || (u_cell == 23 &&v_cell == 11) || (u_cell == 12 &&v_cell == 23) || (u_cell == 23 &&v_cell == 23))){
+	      h_sim_ceh_cellxy[l_hit]->Fill(x_test,y_test);
+	      //std::cout<<"Wafer U: " << u_wafer<<", Wafer V: "<<v_wafer<<std::endl;
+
+	//if (openFile)
+	//	{
+	//	  if ((u_cell > 15 || ((abs(u_wafer) <= 2 && abs(v_wafer) < 2) || (abs(u_wafer) < 2 && abs(v_wafer) <= 2))) && l_hit <= 5)
+	//	    {
+	//	      csv_line << l_hit+27 <<","<<u_wafer<<","<<v_wafer<<","<<u_cell<<","<<v_cell<<"\n";
+	//	      csv_file << csv_line.str().c_str();
+	//	    }
+	//	}
 	      
 	    }
 	  
@@ -319,14 +395,18 @@ void ana_main()
   // write histos to output file
   // Note: cee->28, ceh->24
   int cee = 28; int ceh = 24;
-  WriteToOutput(cee,h_digi_cee_waferuv,"waferuv.root","RECREATE");
-  WriteToOutput(ceh,h_digi_ceh_waferuv,"waferuv.root","UPDATE");
+  WriteToOutput(cee,h_digi_cee_waferuv,"waferuv_10_4_D30.root","RECREATE");
+  WriteToOutput(ceh,h_digi_ceh_waferuv,"waferuv_10_4_D30.root","UPDATE");
   
-  WriteToOutput(cee,h_digi_cee_celluv,"celluv.root","RECREATE");
-  WriteToOutput(ceh,h_digi_ceh_celluv,"celluv.root","UPDATE");
+  WriteToOutput(cee,h_digi_cee_celluv,"celluv_10_4_D30.root","RECREATE");
+  WriteToOutput(ceh,h_digi_ceh_celluv,"celluv_10_4_D30.root","UPDATE");
 
-  WriteToOutput(cee,h_digi_cee_cellxy,"cellmap.root","RECREATE");
-  WriteToOutput(ceh,h_digi_ceh_cellxy,"cellmap.root","UPDATE");
+  WriteToOutput(cee,h_digi_cee_cellxy,"cellmap_10_4_D30.root","RECREATE");
+  WriteToOutput(ceh,h_digi_ceh_cellxy,"cellmap_10_4_D30.root","UPDATE");
+
+  WriteToOutput(cee,h_sim_cee_cellxy,"cellmap_10_4_D30_sim.root","RECREATE");
+  WriteToOutput(ceh,h_sim_ceh_cellxy,"cellmap_10_4_D30_sim.root","UPDATE");
+  
   
 }
 

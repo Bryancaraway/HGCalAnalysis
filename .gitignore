@@ -1,0 +1,8 @@
+*.pyc
+*.root
+*~
+*#
+*.pdf
+HGCalTreeMaker/test/matrixTestSubmit/crab_*_*
+*.log
+HGCalTreeMaker/python/__init__.py
