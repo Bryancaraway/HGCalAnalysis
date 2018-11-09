@@ -5,4 +5,5 @@
 *.pdf
 HGCalTreeMaker/test/matrixTestSubmit/crab_*_*
 *.log
+HGCalTreeMaker/test/log
 HGCalTreeMaker/python/__init__.py
